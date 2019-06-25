@@ -1,0 +1,321 @@
+---
+title: 'Homework #6'
+author: "Srikar Murali (#11593114)"
+date: "April 30, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1.
+
+#### a.
+
+```{r 1a}
+
+f1 <- 1*exp(-1*1.6)
+f2 <- 3*exp(-3*1.6)
+f1
+f2
+p1 <- 0.5
+p2 <- 0.5
+prior_prob_ratio <- p2/p1
+
+
+R1 <- f1/f2 >= prior_prob_ratio
+R1
+R2 <- f1/f2 < prior_prob_ratio
+R2
+
+
+
+
+```
+
+#### b.
+
+Based on the above classification regions, the point X = 1.6 should be classified in region R1.
+
+
+## 2.
+
+
+```{r 2 setup}
+
+dat <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Homework6/data1hw6.csv')
+dat2 <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Homework6/data2hw6.csv')
+
+trainx <- dat[dat[,"Gender"] == 1,]
+trainx <- as.matrix(trainx[, 2:3])
+
+
+trainy <- dat[dat[,"Gender"] == 2,]
+trainy <- as.matrix(trainy[, 2:3])
+
+test <- as.matrix(dat2[, 2:3])
+
+```
+
+
+#### Linear Discriminant Rule
+
+```{r 2 linear}
+
+clrule <- function(x, mu1, mu2, sigma, p1, p2) {
+    lhs <- t(mu1-mu2)%*%(solve(sigma))%*%x-0.5*t(mu1-mu2)%*%(solve(sigma))%*%(mu1+mu2)
+    rhs <- log(p2/p1)
+    out <- list(lhs = lhs, rhs = rhs)
+    return (out)
+}
+classify <- function(trainx, trainy, test) {
+  hmu1 <- colMeans(trainx)
+  hmu2 <- colMeans(trainy)
+  n1 <- dim(trainx)[1]
+  n2 <- dim(trainy)[1]
+  s1 <- cov(trainx)
+  s2 <- cov(trainy)
+  spool <- ((n1-1)/(n1+n2-2))*s1  + ((n2 - 1)/(n1+n2-2))*s2
+  hp1 <- n1/(n1+n2)
+  
+  hp2 <-n2/(n1+n2)
+  ntest <- dim(test)[1] #number of observations to be classified
+  
+  cat <- c()
+  for (i in 1:ntest) {
+    x <- test[i,]
+    rule <- clrule(x=x, mu1=hmu1,mu2=hmu2, sigma=spool, p1=hp1, p2=hp2)
+    if (rule$lhs >= rule$rhs) { cat[i] <- 1}
+    if (rule$lhs < rule$rhs) {cat[i] <- 2}
+  }
+  class <- data.frame(test, cat)
+  return (class)
+  
+}
+
+analysis <- classify(trainx, trainy, test)
+
+count <- 0
+
+for (i in 1:dim(analysis)[1]) {
+  if (analysis$cat[i] != dat2$Gender[i]) {
+    count <- count + 1
+  }
+}
+
+aer <- count/(dim(test)[1])
+aer
+
+```
+
+The actual error rate for the linear discriminant rule was 0.54.
+
+#### Quadratic Discrimination Rule
+
+```{r 2 quadratic}
+
+clruleQuadratic <- function(x, mu1, mu2, sigma1, sigma2, p1, p2) {
+  k <- 0.5*log(det(sigma1)/det(sigma2)) + 0.5*(t(mu1)%*%solve(sigma1)%*%mu1 - t(mu2)%*%solve(sigma2)%*%mu2)
+  lhs <- -0.5*t(x)%*%(solve(sigma1)-solve(sigma2))%*%x + (t(mu1)%*%solve(sigma1) - t(mu2)%*%solve(sigma2))%*%x - k
+  rhs <- log(p2/p1)
+  out <- list(lhs = lhs, rhs = rhs)
+  return (out)
+}
+
+classifyQuadratic <- function(trainx, trainy, test) {
+  hmu1 <- colMeans(trainx)
+  hmu2 <- colMeans(trainy)
+  n1 <- dim(trainx)[1]
+  n2 <- dim(trainy)[1]
+  s1 <- cov(trainx)
+  s2 <- cov(trainy)
+  hp1 <- n1/(n1+n2)
+  
+  hp2 <-n2/(n1+n2)
+  ntest <- dim(test)[1] #number of observations to be classified
+  
+  cat <- c()
+  for (i in 1:ntest) {
+    x <- test[i,]
+    rule <- clruleQuadratic(x=x, mu1=hmu1,mu2=hmu2, sigma1 = s1, sigma2=s2, p1=hp1, p2=hp2)
+    if (rule$lhs >= rule$rhs) { cat[i] <- 1}
+    if (rule$lhs < rule$rhs) {cat[i] <- 2}
+  }
+  class <- data.frame(test, cat)
+  return (class)
+  
+}
+
+analysisQuad <- classifyQuadratic(trainx, trainy, test)
+
+count <- 0
+
+for (i in 1:dim(analysisQuad)[1]) {
+  if (analysisQuad$cat[i] != dat2$Gender[i]) {
+    count <- count + 1
+  }
+}
+count
+
+aer <- count/(dim(test)[1])
+aer
+
+
+```
+
+The actual error rate for the quadratic discriminant rule was 0.42.
+
+## 3.
+
+#### a.
+
+$(2-\lambda)^2 - 1 = 0$
+
+$(2-\lambda)^2 = 1$
+
+$(2 - \lambda) = \pm 1$
+
+The eigenvalues are:
+
+$\lambda = 3, 1$
+
+
+$2*a_{11} + 1*a_{12} = 3*a_{11}$
+
+$1*a_{11} + 2*a_{12} = 3*a_{12}$
+
+Combining the equations yields:
+
+$a_{11} = a_{12}$
+
+In addition:
+
+$a_{1}^{'}a_1 = 1$
+
+$a_{11}^{2} + a_{12}^2 = 1$
+
+$2a_{11}^{2} = 1$
+
+$a_{11} = 1/\sqrt2$
+
+$a_{12} = 1/\sqrt2$
+
+$a_{1}^{'} = (1/\sqrt2, 1/\sqrt2)$ 
+
+Similarly for the second eigenvector:
+
+$2*a_{21} + 1*a_{22} = 1*a_{21}$
+
+$1*a_{21} + 2*a_{22} = 1*a_{22}$
+
+$a_{21} = -a_{22}$
+
+In addition:
+
+$a_{2}^{'}a_2 = 1$
+
+$a_{21}^{2} + a_{22}^2 = 1$
+
+$2a_{21}^{2} = 1$
+
+$a_{21} = -1/\sqrt2$
+
+Since $a_{21} = -a_{22}$
+
+$a_{22} = 1/\sqrt2$
+
+$a_{2}^{'} = (-1/\sqrt2, 1/\sqrt2)$ 
+
+```{r 3a}
+
+
+sigma <- matrix(c(2,1,1,2), nrow = 2, ncol = 2, byrow = TRUE)
+sigma
+e <- eigen(sigma)
+e$values
+e$vectors
+
+```
+
+Checking these values using the inbuilt R functions yields the same results.
+
+
+
+#### b.
+
+Principal Components
+
+$y_1 = a_1*X$
+
+$y_1 = 1/\sqrt2 (x_1 + x_2)$
+
+$y_2 = a_2*X$
+
+$y_2 = 1/\sqrt2 (x_2 - x_1)$
+
+Percent of variation explained by first principal component: $3/(3+1)*100 = 75\%$
+
+Percent of variation explained by second principal component: $1/(1+3)*100 = 25\%$
+
+Together both of these principal components explain 100% of the variation, thus using just the first principal component should be sufficient as it captures 75% of the variation. In addition both principal components are uncorrelated with each other.
+
+
+## 4.
+
+```{r 4}
+
+dat3 <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Homework6/data3hw6.csv')
+
+
+mat_dat <- as.matrix(dat3[,2:6])
+
+
+mat_dat_cov <- cov(mat_dat)
+mat_dat_cov_pca <- princomp(covmat=mat_dat_cov)
+summary(mat_dat_cov_pca)
+summary(mat_dat_cov_pca, loadings = TRUE)
+
+
+mat_dat_cor <- cor(mat_dat)
+mat_dat_cor_pca <- princomp(covmat=mat_dat_cor)
+summary(mat_dat_cor_pca)
+summary(mat_dat_cor_pca, loadings = TRUE)
+
+plot(mat_dat_cov_pca$sdev^2, xlab="component number", ylab = "component variance", type = "l", main = "Scree Diagam")
+screeplot(mat_dat_cov_pca)
+
+plot(mat_dat_cor_pca$sdev^2, xlab="component number", ylab = "component variance", type = "l", main = "Scree Diagam")
+screeplot(mat_dat_cor_pca)
+
+mat_dat_pca <- prcomp(mat_dat, scale=TRUE)
+summary(mat_dat_pca)
+mat_dat_pca$rotation
+
+
+````
+
+
+Based on the screeplots and the summaries only the first two principal components are needed to explain 80% of the variation. The principal component analysis was done using both the covariance and correlation matrices. Both of them yielded very similar results which means that there was no single variable which dominated the components due to having a different scale. The results from both of these were then checked using the inbuilt prcomp function which returned similar results. In all three of the methods only the first two principal components are needed to capture 80% of the total variation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

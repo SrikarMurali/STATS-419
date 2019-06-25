@@ -1,0 +1,180 @@
+---
+title: "Homework 4"
+author: "Srikar Murali (#11593114)"
+date: "April 6, 2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(broom)
+
+```
+
+## 1
+
+#### a.
+
+$H_0: \beta_1 = 0$
+
+$H_a: \beta_1 \neq 0$
+
+```{r 1a}
+
+data1 <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Homework4/dat1.csv')
+m <- aov(Service_rating ~ Gender, data=data1)
+anova(m)
+
+```
+
+The p-value is 0.01172 which is less than the $\alpha$ levels of 0.05. Thus, we reject $H_0$, Gender has some effect on Service_rating.
+
+
+#### b.
+
+```{r 1b}
+
+m2 <- lm(Service_rating ~ Gender, data=data1)
+summary(m2)
+glance(m2)$statistic
+glance(m2)$p.value
+
+```
+
+The p-value is 0.11717 which is less than the $\alpha$ levels of 0.05. Thus, we reject $H_0$, Gender has some effect on Service_rating.
+
+#### c.
+
+ANOVA and linear regression have several similarities. Both models can only be used with a continuous response variable. In addition the regression algorithm can be used to fit an ANOVA model and both of them share many diagnostic procedures. Usually in ANOVA there is a categorical variable with different groups, and the goal is to determine whether the measurement of a continuous variable differs between groups. Ordinary least squares tends to be perceived as an attempt at assessing the relationship between a continuous regressor and or response variable and one or multiple regressors or explanatory variables. Overall though, the two are very similar and can be considered different sides of the same coin.
+
+
+## 2.
+
+#### a.
+
+```{r 2a}
+
+data2 <- as.data.frame(matrix(c(10, 5, 7, 19, 11, 8, 15, 9, 3, 25, 7, 13), nrow = 6, ncol = 2))
+
+linReg <- lm(V2 ~ V1, data=data2)
+summary(linReg)
+X <- as.matrix(c(10, 5, 7, 19, 11, 8))
+Y <- as.matrix(c(15, 9, 3, 25, 7, 13))
+ybar <- mean(Y)
+xbar <- mean(X)
+
+beta_hat <- sum((Y-ybar)*(X-xbar))/sum((X-xbar)^2)
+beta_hat
+
+yhat <- predict(linReg, as.data.frame(X))
+yhat
+
+yhat2 <- c()
+for (i in 1:length(X)) {
+  yhat2[i] <- -0.6667 + 1.2667*X[i]
+}
+yhat2
+
+linReg$residuals
+resid <- c()
+for (i in 1:length(Y)) {
+  resid[i] <- Y[i] - yhat2[i]
+}
+
+resid
+resid <- as.matrix(resid)
+
+t(as.matrix(linReg$residuals))%*%(as.matrix(linReg$residuals))
+residSS <- t(resid)%*%resid
+residSS
+
+
+```
+
+The linear regression built in diagonostics were used to check the accuracy of the manual calculations.
+
+
+#### b.
+
+$H_0: x_1 = 0$ 
+
+$H_a: x_1 \neq 0$
+
+```{r 2b}
+
+n <- length(X)
+p <- 1
+SSE_F <- sum((Y - yhat2)^2)
+SSE_R <- sum((Y - ybar)^2)
+
+F_stat <- (SSE_R - SSE_F)/(SSE_F/(n-2))
+F_stat
+critical_val <- qf(0.95, 1, n-2)
+critical_val
+
+```
+
+The F test statistic is less than the critical value, therfore we fail to reject $H_0$. There isn't enough evidence to determine that $x_1$ has any effect on y.
+
+
+
+## 3.
+
+#### a.
+
+```{r 3a}
+
+data3 <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Homework4/dat2.csv')
+
+profLinReg <- lm(Profits.millions.of... ~ Sales.millions.of... + Assets.millions.of..., data = data3)
+summary(profLinReg)
+
+```
+
+
+#### b.
+
+$H_0: \beta_2 = 0$
+
+$H_a: \beta_2 \neq 0$
+
+```{r 3b}
+
+
+full_model <- lm(data3$Profits.millions.of... ~ data3$Sales.millions.of... + data3$Assets.millions.of...)
+
+reduced_model <- lm(data3$Profits.millions.of... ~ data3$Sales.millions.of...)
+
+lrt <- anova(reduced_model, full_model)
+lrt
+
+
+
+
+```
+
+The likelihood ratio test fails to reject the $H_0$. Therefore there isn't enough evidence to determine if assets has an effect on the profits. The model should be modified to include only sales or only assets. When either sales or assets are included the predictive power increases along with the $R^2$ value. Just including assets seems to give a greater $R^2$ value than only including sales. Either way only one of the two predictors should be included. This is better than the full model since when both sales and assets are included neither of them has any predictive power.
+
+
+#### c.
+
+```{r 3c}
+
+qqnorm(resid(full_model))
+qqline(resid(full_model))
+shapiro.test(resid(full_model))
+
+hy <- predict(full_model, data3)
+
+resid <- data3$Profits.millions.of... - hy
+plot(hy, resid)
+abline(h=0)
+
+
+
+
+```
+
+Based on the QQ-plot the residuals seem fairly normal. The Shapiro-Wilks test confirms that the distribution of the residuals are barely normal. There is some grouping in the residuals, so it would be wise to double check model estimates. In addition the residuals do not seem to lie in a band and are not evenly distributed around the 0 line, thus there may not be constant variance. This problem may be due to the small sample size. Overall it would be good to check predictions for accuracy as the limited amount of data makes it difficult to assess model asumptions.

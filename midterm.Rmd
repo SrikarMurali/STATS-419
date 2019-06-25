@@ -1,0 +1,138 @@
+---
+title: "Midterm"
+author: "Srikar Murali (#11593114)"
+date: "March 21, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 2d.
+
+$H_0: (\mu_1, \mu_2)^T = (0, 0)^T$
+
+$H_a: (\mu_1, \mu_2)^T \neq (0, 0)^T$
+
+```{r 2d}
+
+dat1 <- read.csv('dat1.csv')
+dat1 <- dat1[, 2:3]
+
+log_likelihood <- function(data, alpha){
+  n <- dim(data)[1]
+  xbar <- colMeans(data)
+  data <- as.matrix(data)
+  
+  y <- cbind(c(data[,1] - xbar[1]), c(data[,2] - xbar[2]))
+  hs <- (t(y)%*%y)/n
+  det_hs <- det(hs)
+  
+  hs0 <- (t(data)%*%data)/n
+  det_hs0 <- det(hs0)
+  LRS <- (det_hs/det_hs0)^(n/2)
+  l_lrs <- -2*log(LRS)
+
+  p <- dim(data)[2]
+  chi_sq <- qchisq(1-alpha, p)
+
+  if (l_lrs > chi_sq) {
+    return ("Reject")
+  }
+  return("Fail to Reject")
+
+}
+
+log_likelihood(dat1, 0.05)
+
+```
+
+The log likelihood value is not greater than the $\chi_2^2$ value at an $\alpha$ level of 0.05. Thus we fail to reject $H_0$.
+
+
+## 3c.
+
+$H_0: C\mu = 0$
+
+$H_a: C\mu \neq 0$
+
+
+```{r 3c}
+dat2 <- read.csv('dat2.csv')
+dat2 <- dat2[, 2:5]
+n2 <- dim(dat2)[1]
+
+C <- matrix(c(-1,-1,1,1, 1,-1,1,-1, 1,-1,-1,1), ncol = 4, nrow = 3, byrow = TRUE)
+S <- cov(dat2)
+xbar2 <- colMeans(dat2)
+hotteling_t2 <- n2*t(C%*%xbar2)%*%solve(C%*%S%*%t(C))%*%(C%*%xbar2)
+p2 <- dim(dat2)[2]
+
+f_val <- qf(1-0.05, p2-1, n2-p2+1)
+critical_t2 <- (n2-1)*(p2-1)/(n2-p2+1)*f_val
+
+
+
+hotteling_t2 > critical_t2
+
+```
+
+The $T^2$ value is greater than the critical value, thus we reject $H_0$.
+
+## 5.
+
+
+$H_0: \mu1 - \mu2 = \delta_0$
+
+$H_a: \mu1 - \mu2 \neq \delta_0$
+
+
+```{r 5}
+X <- read.csv('dat3a.csv')
+Y <- read.csv('dat3b.csv')
+X <- X[, 2:4]
+Y <- Y[, 2:4]
+
+paired_t_test <- function(X, Y, alpha, delta) {
+  if(dim(X)[1] != dim(Y)[1]) {
+    stop("Dimension Mismatch")
+  }
+  n <- dim(X)[1]
+  d <- as.matrix(X) - as.matrix(Y)
+  dbar <- colMeans(d)
+  inv_S_d <- solve(cov(d))
+  
+  T_2 <- n*t(dbar - delta)%*%inv_S_d%*%(dbar-delta)
+  p <- dim(X)[2]
+  f_val <- qf(1-alpha, p, n-p)
+  critical_value <- (n-1)*p/(n-p)*f_val
+  if (T_2 > critical_value) {
+    return("Reject")
+  }
+  return("Fail to Reject")
+  
+  
+}
+
+paired_t_test(X, Y, 0.05, 0)
+paired_t_test(X, Y, 0.05, -1)
+paired_t_test(X, Y, 0.05, 1)
+
+
+```
+
+
+From the values 0, -1, and 1; 0 and 1 result in rejecting $H_0$, while -1 results in failing to reject $H_0$.
+
+
+
+
+
+
+
+
+
+

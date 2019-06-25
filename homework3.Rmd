@@ -1,0 +1,393 @@
+---
+title: "Homework3"
+author: "Srikar Murali (#11593114)"
+date: "March 21, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+library(Hotelling)
+library(MVN)
+library(ICSNP)
+```
+
+## 1.
+
+#### a.
+
+$H_0: \mu = (7, 11)'$
+
+$H_a: \mu \neq (7,11)'$
+
+
+```{r 1a}
+mu0_1 <- c(7, 11)
+x1 <- matrix(c(2,12,8,9,6,9,8,10), nrow = 4, ncol = 2, byrow = TRUE)
+xbar1 <- colMeans(x1)
+S1 <- cov(x1)
+invS1 <- solve(S1)
+n1 <- dim(x1)[1]
+T2_1 <- n1*t(xbar1 - mu0_1)%*%invS1%*%(xbar1 - mu0_1)
+T2_1
+```
+
+#### b.
+
+The distribution that is used to test the $T^2$ statistics is the F-distribution. In this case the F-distribution has degrees of freedom p, n-p which for this case evaluate to 2 and 2 respectively. In addition this F-value will be multiplied by (n-1)p/(n-p) or 6/2 = 3.
+
+
+#### c.
+
+$\alpha = 0.01$
+
+```{r 1c}
+p1 <- dim(x1)[2]
+F_stat1 <- qf(1-0.01, p1, n1-p1)
+val_1 <- (n1-1)*p1/(n1-p1)*F_stat1
+val_1
+T2_1 > val_1
+```
+
+The $T^2$ value is smaller than the F-statistic with 2, 2 degrees of freedom at an $\alpha$ level of 0.01. Thus, we fail to reject the $H_0$.
+
+
+## 2.
+
+$H_0: \mu_1 - \mu_2 = 0$
+
+$H_a: \mu_1 - \mu_2 \neq 0$
+
+$\alpha = 0.05$
+
+
+```{r 2}
+x2 <- matrix(c(2,2,0,0,-1,3,0,1,0,1,0,1,1,-1,1,0), nrow = 8, ncol = 2, byrow = TRUE)
+
+d <- x2[, 1]-x2[,2]
+dbar <- mean(d)
+n2 <- dim(x2)[1]
+
+
+S_D <- 1/(n2-1)*sum((d - dbar)^2)
+t_stat <- (dbar - 0)/(S_D/sqrt(n2))
+t_stat
+t_val <- qt(0.975, 7)
+t_val
+t_stat > t_val
+
+t.test(x2[,1], x2[,2], paired=TRUE, alpha=0.05)
+```
+
+The t-test value is smaller than the t-statistic at an $\alpha$ level of 0.05 and 7 degrees of freedom. Thus we fail to reject the $H_0$, the population means are equal.
+
+
+## 3.
+
+#### a.
+
+```{r 3a}
+
+treatment2 <- matrix(c(3,3,1,6,2,3), ncol = 2, nrow = 3, byrow=TRUE)
+treatment3 <- matrix(c(2,3,5,1,3,1,2,3), ncol=2, nrow=4, byrow=TRUE)
+
+t2_n <- dim(treatment2)[1]
+t3_n <- dim(treatment3)[1]
+
+t2_bar <- colMeans(treatment2)
+t3_bar <- colMeans(treatment3)
+
+t2_cov <- cov(treatment2)
+t3_cov <- cov(treatment3)
+
+top <- (t2_n-1)*t2_cov + (t3_n-1)*t3_cov
+bottom  <- (t2_n + t3_n - 2)
+S_pool = top/bottom
+S_pool
+
+```
+
+
+
+#### b.
+
+$H_0: \mu_2 - \mu_3 = 0$
+
+$H_a: \mu_2 - \mu3_3 \neq 0$
+
+$\alpha = 0.01$
+
+
+```{r 3b}
+
+middle <- solve((1/t2_n + 1/t3_n)*S_pool)
+T2_3 <- t(t2_bar - t3_bar - 0)%*%middle%*%(t2_bar-t3_bar-0)
+T2_3
+p3 <- dim(treatment2)[2]
+F_stat3 <- qf(1-0.01, p3, t2_n + t3_n - p3 - 1)
+val_3 <- (((t2_n + t3_n - 2)*p3)/(t2_n + t3_n - p3 - 1))*F_stat3
+val_3
+T2_3 > val_3
+
+```
+
+
+The $T^2$ value is less than the critical value at an alpha level of 0.01 with 2 and 4 degrees of freedom respectively. Thus, we fail to reject the $H_0$, there is no significant different between the means of treatment two and three.
+
+## 4.
+
+#### a.
+
+Since the data is not normally distributed we have to use a likelihood ratio test.
+
+
+$H_0: \mu = (1,1,1)'$
+
+$H_a: \mu \neq (1,1,1)'$
+
+
+```{r 4a}
+
+data <- read.csv('dat1.csv')
+data <- data[, 2:4]
+datamat <- as.matrix(data, nrow=25, ncol=3)
+
+mu0_4 <- c(1,1,1)
+n4 <- dim(datamat)[1]
+xbar4 <- colMeans(datamat)
+ySig <- cbind(c(datamat[, 1] - xbar4[1]),c(datamat[, 2] - xbar4[2]), c(datamat[, 3] - xbar4[3]))
+
+hs4 <- t(ySig)%*%(ySig)/n4
+det_hs4 <- det(hs4)
+det_hs4
+
+ySig0 <-  cbind(c(datamat[, 1] - mu0_4[1]),c(datamat[, 2] - mu0_4[2]), c(datamat[,3 ] - mu0_4[3]))
+hs04 <- t(ySig0)%*%(ySig0)
+det_hs04 <- det(hs04)
+det_hs04
+
+LRS <- (det_hs4/det_hs04)^(n4/2)
+l_lrs <- -2*log(LRS)
+l_lrs
+
+p4 <- dim(datamat)[2]
+alpha4 <- 0.05
+chi <- qchisq(1-alpha4, p4)
+chi
+
+l_lrs > chi
+```
+
+The log likelihood statistic is greater than the chi-square value so we reject the $H_0$. The true mean for all of the populations is not $\mu$ = (1,1,1)'.
+
+
+
+#### b.
+
+```{r 4b}
+statDist <- function(x) {
+  n <- dim(x)[1]
+  fin <- c()
+  
+  xbar <- colMeans(x)
+  y <- cbind(x[, 1] - xbar[1], x[, 2] - xbar[2], x[,3] - xbar[3])
+  S <- t(y)%*%y/n
+  invS <- solve(S)
+  for(i in 1:n) {
+
+    dist <- t(x[i,] - xbar)%*%invS%*%(x[i,]-xbar)
+    fin[i] <- dist
+  }
+  return(fin)
+}
+chivals <- sort(statDist(datamat))
+qlev <- c()
+for (j in 1:25) {
+  qlev[j] <- (j-0.5)/25
+}
+
+smean <- mean(chivals)
+ssd <- sd(chivals)
+norm_quantiles <- qchisq(qlev, df=3)
+norm_quantiles
+plot(norm_quantiles, chivals, xlab = 'Theoretical Quantiles', ylab = 'Sample Quantiles', main = 'Chi-Square Q-Q plot')
+abline(a = 0, b =1)
+mardiaTest(datamat, qqplot = TRUE)
+
+```
+
+The data does not look multivariate normal since there are several outliers. However a majority of the points seem to lie near the linear line, so the data may be multivariate normal. The mardia test states that the data is not multivariate normal however.
+
+
+## 5.
+
+#### a.
+
+$H_0: (\mu_1 - \mu_2, \mu_2 - \mu_3)' = (0, 0)'$
+
+$H_a: (\mu_1 - \mu_2, \mu_2 - \mu_3)' = (0, 0)'$
+
+$\alpha = 0.05$
+
+
+```{r 5a}
+
+x5 <- matrix(c(2,2,3,0,0,2,-1,3,2,0,1,1,0,1,5,0,1,3,1,-1,3,1,0,5), nrow = 8, ncol = 3, byrow = TRUE)
+
+
+D_12 <- x5[,1] - x5[,2]
+D_23 <- x5[,2] - x5[,3]
+D_diff <- t(rbind(D_12, D_23))
+
+D_bar <- colMeans(D_diff)
+
+mu_D <- c(0, 0)
+n5 <- dim(D_diff)[1]
+
+S_Diff <- cov(D_diff)
+invS_diff <- solve(S_Diff)
+T2_5 <- n5*(D_bar - mu_D)%*%invS_diff%*%(D_bar - mu_D)
+T2_5
+
+
+p5 <- dim(x5)[2]
+F_stat5 <- qf(1-0.05, p5, n5-p5)
+
+val_5 <- (n5-1)*p5/(n5-p5)*F_stat5
+val_5
+
+T2_5 > val_5
+
+```
+
+
+The $T^2$ statistic is greater than the critical value, thus we reject the $H_0$, the difference is greater than 0.
+
+#### b.
+
+
+$H_0: C\mu = 0$
+
+$H_a: C\mu \neq 0$
+
+$\alpha = 0.05$
+
+```{r 5b}
+
+C <- matrix(c(1, -1, 0, 0, 1, -1), ncol = 3, nrow = 2, byrow = TRUE)
+S_5 <- cov(x5)
+x5_bar <- colMeans(x5)
+
+inv_CSCT <- solve(C%*%S_5%*%t(C))
+inv_CSCT
+
+T2_5_b <- n5*t(C%*%x5_bar)%*%inv_CSCT%*%(C%*%x5_bar)
+T2_5_b
+
+F_stat5_b <- qf(1-0.05, p5-1, n5-p5+1)
+val_5_b <- (n5-1)*(p5-1)/(n5-p5+1)*F_stat5_b
+val_5_b
+
+T2_5_b > val_5_b
+```
+
+The $T^2$ statistic is greater than the critical value, thus we reject the $H_0$, the difference is greater than 0. This result agrees with the differences method.
+
+
+
+## 6.
+
+#### a.
+```{r 6a}
+treatment1_6 <- matrix(c(6,7,5,9,8,6,4,9,7,9), nrow = 5, ncol = 2, byrow=TRUE)
+treatment2_6 <- matrix(c(3,3,1,6,2,3), ncol = 2, nrow = 3, byrow=TRUE)
+treatment3_6 <- matrix(c(2,3,5,1,3,1,2,3), ncol=2, nrow=4, byrow=TRUE)
+
+t1_mu_6 <- colMeans(treatment1_6)
+t2_mu_6 <- colMeans(treatment2_6)
+t3_mu_6 <- colMeans(treatment3_6)
+
+
+
+full_mean_vector <- rbind(t1_mu_6, t2_mu_6, t3_mu_6)
+global_mean <- colMeans(full_mean_vector)
+
+t1_n <- dim(treatment1_6)[1]
+t2_n <- dim(treatment2_6)[1]
+t3_n <- dim(treatment3_6)[1]
+
+
+SSTrt <- t1_n*(t1_mu_6 - global_mean)%*%t(t1_mu_6 - global_mean) + t2_n*(t2_mu_6 - global_mean)%*%t(t2_mu_6 - global_mean) + t3_n*(t3_mu_6 - global_mean)%*%t(t3_mu_6 - global_mean)
+
+SSTrt
+
+SSRes <- (treatment1_6[1, ] - t1_mu_6)%*%t(treatment1_6[1, ] - t1_mu_6) +  (treatment1_6[2, ] - t1_mu_6)%*%t(treatment1_6[2, ] - t1_mu_6) + (treatment1_6[3, ] - t1_mu_6)%*%t(treatment1_6[3, ] - t1_mu_6) + (treatment1_6[4, ] - t1_mu_6)%*%t(treatment1_6[4, ] - t1_mu_6) + (treatment1_6[5, ] - t1_mu_6)%*%t(treatment1_6[5, ] - t1_mu_6) + 
+  (treatment2_6[1, ] - t2_mu_6)%*%t(treatment2_6[1, ] - t2_mu_6) + (treatment2_6[2, ] - t2_mu_6)%*%t(treatment2_6[2, ] - t2_mu_6) + (treatment2_6[3, ] - t2_mu_6)%*%t(treatment2_6[3, ] - t2_mu_6) + (treatment3_6[1, ] - t3_mu_6)%*%t(treatment3_6[1, ] - t3_mu_6) + (treatment3_6[2, ] - t3_mu_6)%*%t(treatment3_6[2, ] - t3_mu_6) + (treatment3_6[3, ] - t3_mu_6)%*%t(treatment3_6[3, ] - t3_mu_6) + (treatment3_6[4, ] - t3_mu_6)%*%t(treatment3_6[4, ] - t3_mu_6)
+
+SSRes
+
+SSTot <- (treatment1_6[1, ] - global_mean)%*%t(treatment1_6[1, ] - global_mean) +  (treatment1_6[2, ] - global_mean)%*%t(treatment1_6[2, ] - global_mean) + (treatment1_6[3, ] - global_mean)%*%t(treatment1_6[3, ] - global_mean) + (treatment1_6[4, ] - global_mean)%*%t(treatment1_6[4, ] - global_mean) + (treatment1_6[5, ] - global_mean)%*%t(treatment1_6[5, ] - global_mean) +
+  (treatment2_6[1, ] - global_mean)%*%t(treatment2_6[1, ] - global_mean) + (treatment2_6[2, ] - global_mean)%*%t(treatment2_6[2, ] - global_mean) + (treatment2_6[3, ] - global_mean)%*%t(treatment2_6[3, ] - global_mean) + (treatment3_6[1, ] - global_mean)%*%t(treatment3_6[1, ] - global_mean) + (treatment3_6[2, ] - global_mean)%*%t(treatment3_6[2, ] - global_mean) + (treatment3_6[3, ] - global_mean)%*%t(treatment3_6[3, ] - global_mean) + (treatment3_6[4, ] - global_mean)%*%t(treatment3_6[4, ] - global_mean)
+
+SSTot
+
+```
+
+
+#### b.
+
+```{r 6b}
+
+
+dat6 <-data.frame(matrix_of_SS=I(list()), df=integer())
+
+
+
+dat6[1, 'source_of_variation'] <- 'Trt(B)'
+dat6[2, 'source_of_variation'] <- 'Resid(W)'
+dat6[3, 'source_of_variation'] <- 'Total'
+
+dat6$matrix_of_SS[[1]] <- SSTrt
+dat6$matrix_of_SS[[2]] <- SSRes
+dat6$matrix_of_SS[[3]] <- SSTot
+
+
+dat6[1, 'df'] <- 2
+dat6[2, 'df'] <- 9
+dat6[3, 'df'] <- 11
+
+dat6$df[1] <- 2
+dat6$df[2] <- 9
+dat6$df[3] <- 11
+
+dat6$source_of_variation
+dat6$matrix_of_SS
+dat6$df
+
+```
+
+
+
+#### c.
+
+```{r 6c}
+
+lambda_6 <- det(SSRes)/det(SSTrt + SSRes)
+lambda_6
+nl <- t1_n + t2_n + t3_n
+
+p6 <- dim(treatment1_6)[2]
+
+full_stat <- ((nl - p6 - 2)/p6)*((1-sqrt(lambda_6))/sqrt(lambda_6))
+full_stat
+
+F_stat_6 <- qf(1-0.05, 2*p6, nl - p6 - 2)
+F_stat_6
+full_stat > F_stat_6
+
+```
+
+Since p = 2 and g = 3 we use the specified distribution. The test statistic is greater than the critical value, thus we reject the null hypothesis. The three means are not equal.

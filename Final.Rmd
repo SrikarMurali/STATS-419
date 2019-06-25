@@ -1,0 +1,293 @@
+---
+title: "Final-Take Home Part"
+author: "Srikar Murali (#11593114)"
+date: "May 04, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(MASS)
+library(tidyverse)
+library(stringi)
+
+```
+
+## 1.
+
+
+```{r 1}
+
+data1 <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Final/clintondata.csv')
+
+##Remove Countries
+data1 <- data1[, 3:12]
+
+#Create Initial Model
+initial_model <- lm(Percent.voting.for.Clinton ~ ., data=data1)
+summary(initial_model)
+
+#Use Stepwise model selection to find best model
+final_model <- stepAIC(initial_model)
+summary(final_model)
+
+
+##QQ-Plot for Final-Model
+qqnorm(resid(final_model))
+qqline(resid(final_model))
+shapiro.test(resid(final_model))
+
+
+
+
+#Get predicted values
+hy <- predict(final_model, data1)
+
+#Plot residuals vs predicted values
+resid <- data1$Percent.voting.for.Clinton - hy
+plot(hy, resid)
+abline(h=0)
+
+```
+
+
+In the initial model it appears that all variable except Percent.in.Nursing.Homes, Crime.Index..Per.capita., and Population.DensityMedium are significant at an $\alpha$ level of 0.05. The population density variables are categorical, therefore it isn't surprising that one of the categories is considered to not have predictive power, though as a whole the population density variable does have predictive power. After using stepwise model selection the variables Percent.in.Nursing.Homes and Crime.Index..Per.capita. were removed. All of the remaining variables except for Population.DensityMedium have predictive power at an $\alpha$ level of 0.05. The other two population density dummy variables have predictive power, therefore population density has predictive power. The variables which seem to have the greatest predictive power are the PerCapita.Income, Percent.In.Poverty, Percent.Veterans, Percent.Female, Population.Density, Mean.Age, and Mean.Savings. The first five have the greatest predictive power as even at an $\alpha$ level of 0 they are still statistically significant. 
+
+Looking at the model diagnostics, the residuals for the Q-Q plot do not seem to fall completely on a linear line. The Shapiro-Wilks test also states that the data is not normally distributed. The residuals are concentrated at a certain point. There doesn't seem to be any patterns in the residuals, though it is hard to determine. There looks to be some deviation which could mean that the variance is not constant. Overall, predictions from this model should not be trusted since the model does not satisfy the normality and homoscedasticity conditions.
+
+
+
+
+## 2.
+
+
+```{r 2 functions}
+
+##Classification Rule Function
+clrule <- function(x, mu1, mu2, sigma, p1, p2) {
+  lhs <- t(mu1-mu2)%*%(solve(sigma))%*%x-0.5*t(mu1-mu2)%*%(solve(sigma))%*%(mu1+mu2)
+  rhs <- log(p2/p1)
+  out <- list(lhs = lhs, rhs = rhs)
+  return (out)
+}
+
+##Classification for 1st group vs rest
+classifyG1 <- function(trainx, trainy, test) {
+  hmu1 <- colMeans(trainx)
+  hmu2 <- colMeans(trainy)
+  n1 <- dim(trainx)[1]
+  n2 <- dim(trainy)[1]
+  s1 <- cov(trainx)
+  s2 <- cov(trainy)
+  spool <- ((n1-1)/(n1+n2-2))*s1  + ((n2 - 1)/(n1+n2-2))*s2
+  hp1 <- n1/(n1+n2)
+  
+  hp2 <-n2/(n1+n2)
+  ntest <- dim(test)[1] #number of observations to be classified
+  
+  cat <- c()
+  for (i in 1:ntest) {
+    x <- test[i,]
+    rule <- clrule(x=x, mu1=hmu1,mu2=hmu2, sigma=spool, p1=hp1, p2=hp2)
+    if (rule$lhs >= rule$rhs) { cat[i] <- 'G'}
+    if (rule$lhs < rule$rhs) {cat[i] <- 'KQ'}
+  }
+  class <- data.frame(test, cat)
+  return (class)
+  
+}
+
+##Classification for 2nd group vs rest
+classifyG2 <- function(trainx, trainy, test) {
+  hmu1 <- colMeans(trainx)
+  hmu2 <- colMeans(trainy)
+  n1 <- dim(trainx)[1]
+  n2 <- dim(trainy)[1]
+  s1 <- cov(trainx)
+  s2 <- cov(trainy)
+  spool <- ((n1-1)/(n1+n2-2))*s1  + ((n2 - 1)/(n1+n2-2))*s2
+  hp1 <- n1/(n1+n2)
+  
+  hp2 <-n2/(n1+n2)
+  ntest <- dim(test)[1] #number of observations to be classified
+  
+  cat <- c()
+  for (i in 1:ntest) {
+    x <- test[i,]
+    rule <- clrule(x=x, mu1=hmu1,mu2=hmu2, sigma=spool, p1=hp1, p2=hp2)
+    if (rule$lhs >= rule$rhs) { cat[i] <- 'K'}
+    if (rule$lhs < rule$rhs) {cat[i] <- 'GQ'}
+  }
+  class <- data.frame(test, cat)
+  return (class)
+  
+}
+
+##Classification for 3rd group vs rest
+classifyG3 <- function(trainx, trainy, test) {
+  hmu1 <- colMeans(trainx)
+  hmu2 <- colMeans(trainy)
+  n1 <- dim(trainx)[1]
+  n2 <- dim(trainy)[1]
+  s1 <- cov(trainx)
+  s2 <- cov(trainy)
+  spool <- ((n1-1)/(n1+n2-2))*s1  + ((n2 - 1)/(n1+n2-2))*s2
+  hp1 <- n1/(n1+n2)
+  
+  hp2 <-n2/(n1+n2)
+  ntest <- dim(test)[1] #number of observations to be classified
+  
+  cat <- c()
+  for (i in 1:ntest) {
+    x <- test[i,]
+    rule <- clrule(x=x, mu1=hmu1,mu2=hmu2, sigma=spool, p1=hp1, p2=hp2)
+    if (rule$lhs >= rule$rhs) { cat[i] <- 'Q'}
+    if (rule$lhs < rule$rhs) {cat[i] <- 'GK'}
+  }
+  class <- data.frame(test, cat)
+  return (class)
+  
+}
+
+
+```
+
+First create the three classifier functions. One for each of the groups. This is to compare the group being tested to the other groups. Use the same classification rule for all three of the groups.
+
+
+
+```{r 2 setup}
+
+
+#Get training data
+training_data <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Final/training_takehome.csv')
+
+training_data <- training_data[, 2:10]
+
+#Get test data for validation
+test <- as.matrix(training_data[, 2:9])
+
+
+#Get group 1 trainx and trainy
+trainxG1 <- training_data[training_data[, "Manufacturer"] == 'G', ]
+trainxG1 <- as.matrix(trainxG1[, 2:9])
+
+trainyG1 <- training_data[training_data[, "Manufacturer"] == 'K' | training_data[, "Manufacturer"] == 'Q', ]
+trainyG1 <- as.matrix(trainyG1[, 2:9])
+
+#Get group 2 trainx and trainy
+trainxG2 <- training_data[training_data[, "Manufacturer"] == 'K', ]
+trainxG2 <- as.matrix(trainxG2[, 2:9])
+
+trainyG2 <- training_data[training_data[, "Manufacturer"] == 'G' | training_data[, "Manufacturer"] == 'Q', ]
+trainyG2 <- as.matrix(trainyG2[, 2:9])
+
+
+#Get group 3 trainx and trainy
+trainxG3 <- training_data[training_data[, "Manufacturer"] == 'Q', ]
+trainxG3 <- as.matrix(trainxG3[, 2:9])
+
+trainyG3 <- training_data[training_data[, "Manufacturer"] == 'G' | training_data[, "Manufacturer"] == 'K', ]
+trainyG3 <- as.matrix(trainyG3[, 2:9])
+
+#Classifications from each group classifier
+analysis1 <- classifyG1(trainxG1, trainyG1, test)
+
+analysis2 <- classifyG2(trainxG2, trainyG2, test)
+
+analysis3 <- classifyG3(trainxG3, trainyG3, test)
+
+
+```
+
+
+Setup the analysis and conduct the tests on each of the three different groups. 
+
+
+```{r 2 final, warning=FALSE}
+
+
+
+#Create data frame to add estimated categories
+full_analysis <- as.data.frame(test)
+
+
+#Concatenate categories into single string
+full <- paste(analysis1$cat, analysis2$cat, analysis3$cat, sep="")
+
+#Append to data frame
+full_analysis$Category <- full
+
+#Get maximum category by splitting string and counting the max occurring character
+for (i in 1:dim(full_analysis)[1]) {
+  x <- full_analysis$Category[i]
+  x <- strsplit(x, split = '')
+  vec_x <- stri_extract_all_words(x, simplify = TRUE)
+  top <- names(sort(summary(as.factor(vec_x)), decreasing=TRUE)[1])
+  full_analysis$Category[i] <- top
+  
+}
+full_analysis
+
+##Compute actual error rate
+count <- 0
+
+for (i in 1:dim(full_analysis)[1]) {
+  if (full_analysis$Category != training_data$Manufacturer[i]) {
+    count <- count + 1
+  }
+}
+
+aer <- count/(dim(test)[1])
+aer
+
+
+```
+
+
+Finally concatenate all of the predictions and then find the most common prediction. In addition, the actual error rate for the training data can be calculated. In this case it is 0.6 which means that the model is better than random guessing.
+
+
+
+Now do the same for the testing data. The only difference is that the actual error rate cannot be calculated since the true group is unknown.
+
+
+```{r 2 test, warning=FALSE}
+
+#Retrieve the testing data and set it up.
+testing_data <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Final/testing_takehome.csv')
+testing_data <- testing_data[, 2:9]
+
+
+true_test <- as.matrix(testing_data)
+
+#Use the training data for the trainx and trainy parameter fields
+
+#Classifications from each group classifier
+test_analysis1 <- classifyG1(trainxG1, trainyG1, true_test)
+
+test_analysis2 <- classifyG2(trainxG2, trainyG2, true_test)
+
+test_analysis3 <- classifyG3(trainxG3, trainyG3, true_test)
+
+#Add the classifications to the data frame.
+full_test_analysis <- as.data.frame(true_test)
+full_test <- paste(test_analysis1$cat, test_analysis2$cat, test_analysis3$cat, sep="")
+full_test_analysis$Category <- full_test
+
+
+#Get maximum category by splitting string and counting the max occurring character
+for (i in 1:dim(full_test_analysis)[1]) {
+  x <- full_test_analysis$Category[i]
+  x <- strsplit(x, split = '')
+  vec_x <- stri_extract_all_words(x, simplify = TRUE)
+  top <- names(sort(summary(as.factor(vec_x)), decreasing=TRUE)[1])
+  full_test_analysis$Category[i] <- top
+  
+}
+full_test_analysis
+
+
+```

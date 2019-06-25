@@ -1,0 +1,131 @@
+---
+title: "Homework #5"
+author: "Srikar Murali (#11593114)"
+date: "April 15, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1
+
+
+```{r 1}
+
+
+linear_regression_likelihood <- function(mat, response, indices, alpha, num_vars) {
+  mat <- as.matrix(mat)
+  reduced <- mat[,c(1, indices)]
+  q <- num_vars #set q = 1 just to test on data
+  
+  p <- dim(mat)[2]
+  n <- dim(mat)[1]
+
+  f_stat <- qf(1-alpha, df1 = (p+1)-q, df2 = n-(p+1))
+  beta_hat_full <- qr.solve(t(mat)%*%mat)%*%t(mat)%*%response
+  y_hat_full <- mat%*%beta_hat_full
+  SSRes_full <- t(response - y_hat_full)%*%(response-y_hat_full)
+  
+  
+  beta_hat_red <- qr.solve(t(reduced)%*%reduced)%*%t(reduced)%*%response
+  y_hat_red <- reduced%*%beta_hat_red
+  SSRes_red <- t(response - y_hat_red)%*%(response-y_hat_red)
+  
+ 
+  
+  s_2 <- (t(response - mat%*%beta_hat_full)%*%(response - mat%*%beta_hat_full))/(n-p+1)
+
+  critical_value <- ((SSRes_red - SSRes_full)/(p+1-q))/s_2
+  if (critical_value > f_stat) {
+    return ("Reject H0")
+  }
+  else {
+    return ("Fail to Reject H0")
+  }
+}
+
+
+
+
+```
+
+The likelihood ratio test takes five input parameters. The 5th parameter was added to reduce code. The first parameter is the design matrix and the second is the response matrix. In the case of the dataset this is $y$. The third input is the indices not being tested. For example in the dataset the indices would be 2 and 3 since the third variable is being tested. The fourth parameter is the $\alpha$ level of the test while the fifth parameter is an added parameter to reduce code and clutter. It is the number of variables being tested; in the case of this test it is 1. This parameter was added due to the fact that in the case of categorical variables it makes it easier to directly specify the number of variables being tested. 
+
+
+
+## 2.
+
+#### a.
+
+```{r 2a}
+data <- read.csv('C:/Users/srika/Documents/Semester2/STATS419/Homework5/data_hw5.csv')
+data <- data[, 2:5]
+
+mat <- data[, 2:4]
+response <- data[, 1]
+response
+
+
+ndummy<-length(unique(data$x3))-1
+
+
+n <- length(data$x3)
+
+
+dummies <- matrix(0,n,ndummy)
+for (i in 1:n){
+  if(data$x3[i] == 'A') {dummies[i,]=c(0,0,0)}
+  if(data$x3[i] == 'B') {dummies[i,]=c(0,0,1)}
+  if(data$x3[i] == 'C') {dummies[i,]=c(0,1,0)}
+  if(data$x3[i] == 'D') {dummies[i,]=c(1,0,0)}
+  }
+
+mat <- cbind(1, mat[, 1:2], dummies)
+mat
+
+```
+
+
+
+#### b.
+
+$H_0: x_3 = 0$
+
+$H_a: x_3 \neq 0$
+
+
+```{r 2b}
+
+linear_regression_likelihood(mat, response, 2:3, 0.05, 1)
+
+test_model <- lm(y ~ x1 + x2 + x3, data = data)
+reduced_test_model <- lm(y ~ x1 + x2, data = data)
+anova(test_model, reduced_test_model)
+
+```
+
+The implemented likelihood ratio test seems to agree with the inbuilt tests. We reject $H_0$, the variable $x_3$ has some affect on the response variable $y$.
+
+
+#### c.
+
+
+```{r 2c}
+
+qqnorm(resid(test_model))
+qqline(resid(test_model))
+shapiro.test(resid(test_model))
+
+hy <- predict(test_model, data)
+
+resid <- data$y - hy
+plot(hy, resid)
+abline(h=0)
+
+```
+
+The data seems normal as it looks like most of the points lie on the linear line. The Shapiro-Wilks test confirms this as the p-value is 0.4726 meaning that the data is normally distributed. In addition the residuals lie in a band around the 0 line and there doesn't seem to be any noticeable pattern; the points look randomly scattered about. Thus, the conditions for using regression and performing the likelihood ratio test are met.
